@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { register, login, logout, getMe } from '../controllers/auth.controller.js';
-import { requireAuth } from '../middleware/requireAuth.js';
+import { register, login, logout, getMe } from '../controllers/auth.controller';
+import requireAuth from '../middleware/requireAuth'; // FIXED: Changed to default import style
 
 const router = Router();
 
