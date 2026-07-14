@@ -4,6 +4,7 @@ export interface IPaper extends Document {
   title: string;
   shortDescription: string;
   abstract: string;
+  authors: string[];
   field: string;
   year: number;
   citationCount: number;
@@ -29,6 +30,11 @@ const PaperSchema: Schema = new Schema(
     abstract: { 
       type: String, 
       required: true 
+    },
+    authors: {
+      type: [String],
+      required: true,
+      default: []
     },
     field: { 
   type: String, 
@@ -64,6 +70,6 @@ const PaperSchema: Schema = new Schema(
 );
 
 // Add text indexes for optimal query lookups in our search engine controller
-PaperSchema.index({ title: 'text', abstract: 'text', keywords: 'text' });
+PaperSchema.index({ title: 'text', abstract: 'text', keywords: 'text', authors: 'text' });
 
 export default mongoose.models.Paper || mongoose.model<IPaper>('Paper', PaperSchema);

@@ -75,7 +75,7 @@ export const getRelatedPapers = async (req: Request, res: Response, next: NextFu
       return;
     }
 
-    const papers = await computeRelatedPapers(id as string);
+    const papers = await computeRelatedPapers(id);
 
     res.status(200).json({
       success: true,
@@ -99,11 +99,23 @@ export const createPaper = async (req: any, res: Response, next: NextFunction): 
     }
 
     // Extract values cleanly out of the request payload frame
-    const { title, shortDescription, abstract, field, year, citationCount, keywords, image } = req.body;
+    const { title, shortDescription, abstract, authors, field, year, citationCount, keywords, image } = req.body;
 
     // Validate absolute essentials explicitly
     if (!title || !abstract || !field) {
       res.status(400).json({ success: false, message: "Missing required core fields (Title, Abstract, or Field)." });
+      return;
+    }
+
+    // Process authors correctly into clean arrays if submitted as standard horizontal strings
+    const processedAuthors = Array.isArray(authors)
+      ? authors.map((a: string) => a.trim()).filter(Boolean)
+      : typeof authors === 'string'
+        ? authors.split(',').map((a) => a.trim()).filter(Boolean)
+        : [];
+
+    if (processedAuthors.length === 0) {
+      res.status(400).json({ success: false, message: "At least one author is required." });
       return;
     }
 
@@ -119,6 +131,7 @@ export const createPaper = async (req: any, res: Response, next: NextFunction): 
       title,
       shortDescription: shortDescription || '',
       abstract,
+      authors: processedAuthors,
       field,
       year: Number(year) || 2026,
       citationCount: Number(citationCount) || 0,
