@@ -1,22 +1,22 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express'; // FIXED: Added NextFunction to imports
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
+import { User } from '../models/User'; // FIXED: Removed the trailing .js to prevent bundling path errors
 
 const generateTokenAndSetCookie = (res: Response, userId: string) => {
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET || '', {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback_secret_key', {
     expiresIn: '7d',
   });
 
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: process.env.NODE_ENV === 'production', // Dynamic flag: true on Vercel (HTTPS), false on localhost (HTTP)
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required to allow cookies on local host environments
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 };
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, email, password } = req.body;
 
@@ -33,14 +33,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     generateTokenAndSetCookie(res, newUser._id.toString());
 
     res.status(201).json({
+      success: true,
       user: { id: newUser._id, name: newUser.name, email: newUser.email },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server registration error' });
+    next(error);
   }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
 
@@ -59,27 +60,42 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     generateTokenAndSetCookie(res, user._id.toString());
 
     res.status(200).json({
+      success: true,
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server login error' });
+    next(error);
   }
 };
 
 export const logout = (req: Request, res: Response): void => {
-  res.clearCookie('token');
-  res.status(200).json({ message: 'Logged out successfully' });
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
-export const getMe = async (req: Request, res: Response): Promise<void> => {
+export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById(req.user?.id).select('-passwordHash');
+    // Safely pull the user payload context attached by requireAuth
+    const userId = (req as any).user?.id || (req as any).user?._id;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Not authenticated' });
+      return;
+    }
+
+    const user = await User.findById(userId).select('-passwordHash');
+    
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
-    res.status(200).json({ user });
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ message: 'Server profile fetch error' });
+    next(error);
   }
 };
