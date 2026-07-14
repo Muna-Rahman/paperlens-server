@@ -75,7 +75,7 @@ export const getRelatedPapers = async (req: Request, res: Response, next: NextFu
       return;
     }
 
-    const papers = await computeRelatedPapers(id);
+    const papers = await computeRelatedPapers(id as string);
 
     res.status(200).json({
       success: true,
