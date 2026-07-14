@@ -1,12 +1,14 @@
 import { Router } from 'express';
-import { register, login, logout, getMe } from '../controllers/auth.controller';
-import requireAuth from '../middleware/requireAuth'; // FIXED: Changed to default import style
+import { register, login, logout } from '../controllers/auth.controller';
+import { requireAuth } from '../middleware/requireAuth';
 
 const router = Router();
 
+// Public routes
 router.post('/register', register);
 router.post('/login', login);
+
+// Protected routes (requires authentication)
 router.post('/logout', requireAuth, logout);
-router.get('/me', requireAuth, getMe);
 
 export default router;

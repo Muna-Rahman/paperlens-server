@@ -1,26 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export default function requireAuth(req: any, res: Response, next: NextFunction): void {
-  // Read token from cookies or authorization headers
-  const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
+interface DecodedToken {
+  userId: string;
+}
+
+// Extend Express Request interface to hold user info
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+      };
+    }
+  }
+}
+
+export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
+  const token = req.cookies?.token;
 
   if (!token) {
-    res.status(401).json({ success: false, message: "Authentication session token missing." });
+    res.status(401).json({ message: 'Unauthorized: No token provided' });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
-    
-    // FIXED: Normalize both .id and ._id variations so controller layers don't parse undefined values
-    req.user = {
-      id: decoded.id || decoded._id,
-      email: decoded.email
-    };
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as DecodedToken;
+    req.user = { id: decoded.userId };
     next();
   } catch (error) {
-    res.status(401).json({ success: false, message: "Session token signature is invalid." });
+    res.status(401).json({ message: 'Unauthorized: Invalid token' });
   }
-}
+};
