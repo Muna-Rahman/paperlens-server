@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import Paper from '../models/Paper';
+import { computeRelatedPapers } from '../services/similarity.service';
 
 // Extend interface to safely parse user IDs out of the authenticated middleware session
 interface AuthenticatedRequest extends Request {
@@ -56,6 +57,30 @@ export const getPaperById = async (req: Request, res: Response, next: NextFuncti
       return;
     }
     res.status(200).json({ success: true, paper });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Retrieve the top 4 most similar papers using the TF-IDF / cosine similarity engine
+ */
+export const getRelatedPapers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const exists = await Paper.exists({ _id: id });
+    if (!exists) {
+      res.status(404).json({ success: false, message: "Document register not found." });
+      return;
+    }
+
+    const papers = await computeRelatedPapers(id);
+
+    res.status(200).json({
+      success: true,
+      papers
+    });
   } catch (error) {
     next(error);
   }
