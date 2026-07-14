@@ -1,30 +1,24 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { toNodeHandler } from 'better-auth/node'; // Fixed: Official adapter for Express/Node.js compatibility
-import authRoutes from './routes/auth.routes';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './lib/auth';
 import paperRoutes from './routes/paper.routes';
-import { auth } from './lib/auth'; 
 
 const app = express();
 
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
-  })
-);
+// 1. CORS & Better Auth must come first
+app.use(cors({ 
+  origin: process.env.FRONTEND_URL, 
+  credentials: true 
+}));
+app.use('/api/auth', toNodeHandler(auth)); // Handles native /api/auth/sign-in/email, etc.
 
+// 2. Standard parsers for the rest of your app routes
 app.use(express.json());
 app.use(cookieParser());
 
-// FIXED: Using app.use() matches prefixes natively (e.g., /api/auth/signup, /api/auth/login)
-// This completely circumvents path-to-regexp wildcard parsing issues and drops the PathError crash.
-// toNodeHandler bridges Express objects seamlessly to resolve the 1-argument TypeScript mismatch.
-app.use('/api/auth', toNodeHandler(auth));
-
-// Active structural API routes
-app.use('/api/auth', authRoutes);
+// 3. Application routes
 app.use('/api/papers', paperRoutes);
 
 // Graceful Root Fallback: Prevents 404s if client navigation slips to the backend port directly

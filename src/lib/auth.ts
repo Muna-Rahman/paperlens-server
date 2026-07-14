@@ -12,15 +12,25 @@ if (!dbUri) {
 }
 
 const client = new MongoClient(dbUri);
+const db = client.db(); // <-- FIX 1: Extract the Db connection context
 
 export const auth = betterAuth({
-    database: mongodbAdapter(client.db()),
-    emailAndPassword: {
-        enabled: true
-    },
-    trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000"],
-    cookie: {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none", // Must be "none" if Frontend and Backend are on different subdomains/domains
+  database: mongodbAdapter(db, {
+    client: client
+  }),
+  // FIX A: Tell Better Auth where its own endpoints live
+  baseURL: "http://localhost:5000",
+  
+  // FIX B: Explicitly allow the Next.js frontend to make auth calls
+  trustedOrigins: ["http://localhost:3000"],
+  
+  emailAndPassword: {
+    enabled: true
+  },
+  advanced: {
+    defaultCookieAttributes: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     }
+  }
 });

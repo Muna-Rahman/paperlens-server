@@ -1,34 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { fromNodeHeaders } from 'better-auth/node';
+import { auth } from '../lib/auth';
 
-interface DecodedToken {
-  userId: string;
-}
-
-// Extend Express Request interface to hold user info
+// FIX: Tells TypeScript to extend Express Request to allow the user object
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-      };
+      user?: any;
     }
   }
 }
 
-export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
-  const token = req.cookies?.token;
-
-  if (!token) {
-    res.status(401).json({ message: 'Unauthorized: No token provided' });
-    return;
-  }
-
+export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as DecodedToken;
-    req.user = { id: decoded.userId };
+    // Better Auth reads cookies/tokens straight out of the request headers[cite: 1]
+    const session = await auth.api.getSession({ 
+      headers: fromNodeHeaders(req.headers) 
+    });
+
+    if (!session) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Attach user information to the request context[cite: 1]
+    req.user = session.user;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 };
