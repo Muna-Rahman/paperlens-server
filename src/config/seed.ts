@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
-import Paper from '../models/Paper';
+import Paper from '../models/Paper.js';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const academicCorpus = [

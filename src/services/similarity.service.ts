@@ -1,4 +1,4 @@
-import Paper from '../models/Paper';
+import Paper from '../models/Paper.js';
 
 /**
  * Enhanced tokenizer to filter out structural noise and isolate meaningful text terms

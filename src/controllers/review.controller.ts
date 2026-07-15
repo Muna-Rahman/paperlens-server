@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import Review from '../models/Review';
-import Paper from '../models/Paper';
+import Review from '../models/Review.js';
+import Paper from '../models/Paper.js';
 
 interface AuthenticatedRequest extends Request {
   user?: {

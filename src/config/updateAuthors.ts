@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import Paper from '../models/Paper'; 
-import { connectDB } from './db'; 
+import Paper from '../models/Paper.js';
+import { connectDB } from './db.js';
 
 
 const globalAuthorsPool = [

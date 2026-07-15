@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import Paper from '../models/Paper';
-import { computeRelatedPapers } from '../services/similarity.service';
+import Paper from '../models/Paper.js';
+import { computeRelatedPapers } from '../services/similarity.service.js';
 
 // Extend interface to safely parse user IDs out of the authenticated middleware session
 interface AuthenticatedRequest extends Request {
