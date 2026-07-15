@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth';
 import paperRoutes from './routes/paper.routes';
 
@@ -12,7 +11,24 @@ app.use(cors({
   origin: process.env.FRONTEND_URL, 
   credentials: true 
 }));
-app.use('/api/auth', toNodeHandler(auth)); // Handles native /api/auth/sign-in/email, etc.
+
+let authHandlerPromise: Promise<express.RequestHandler> | null = null;
+
+function getAuthHandler(): Promise<express.RequestHandler> {
+  if (!authHandlerPromise) {
+    authHandlerPromise = import('better-auth/node').then(({ toNodeHandler }) => toNodeHandler(auth));
+  }
+  return authHandlerPromise;
+}
+
+app.use('/api/auth', async (req, res, next) => {
+  try {
+    const handler = await getAuthHandler();
+    handler(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+}); // Handles native /api/auth/sign-in/email, etc.
 
 // 2. Standard parsers for the rest of your app routes
 app.use(express.json());
