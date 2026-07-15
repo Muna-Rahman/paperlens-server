@@ -15,7 +15,7 @@ interface AuthenticatedRequest extends Request {
 export const getPapers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { search, field, sort } = req.query;
-    
+
     let query: any = {};
     if (search) {
       query.$or = [
@@ -33,13 +33,27 @@ export const getPapers = async (req: Request, res: Response, next: NextFunction)
     if (sort === 'Newest' || sort === 'NEWEST') sortOptions = { year: -1 };
     if (sort === 'Citations' || sort === 'CITATIONS') sortOptions = { citationCount: -1 };
 
-    const papers = await Paper.find(query).sort(sortOptions).lean();
+    // Pagination: clamp page/limit to sane bounds so bad input can't force a full unbounded scan
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
+    const skip = (page - 1) * limit;
+
     const totalAvailable = await Paper.countDocuments(query);
+    const totalPages = Math.max(1, Math.ceil(totalAvailable / limit));
+
+    const papers = await Paper.find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     res.status(200).json({
       success: true,
       papers,
-      totalAvailable
+      totalAvailable,
+      page,
+      limit,
+      totalPages
     });
   } catch (error) {
     next(error);
