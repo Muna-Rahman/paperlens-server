@@ -4,8 +4,11 @@ import cookieParser from 'cookie-parser';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 import paperRoutes from './routes/paper.routes.js';
+import { connectDB } from './config/db.js';
 
 const app = express();
+
+connectDB();
 
 // 1. CORS & Better Auth must come first
 app.use(cors({ 
